@@ -49,7 +49,7 @@ def cadastro():
             ).decode("utf-8")
 
             # verifica usuário
-            usuario_existente = supabase.table("usuários") \
+            usuario_existente = supabase.table("usuarios") \
                 .select("*") \
                 .eq("email", email) \
                 .execute()
@@ -58,7 +58,7 @@ def cadastro():
                 return "Email já cadastrado"
 
             # insert
-            res = supabase.table("usuários").insert({
+            res = supabase.table("usuarios").insert({
                 "nome": nome,
                 "email": email,
                 "senha": senha_hash
@@ -89,7 +89,7 @@ def login():
             email = request.form["email"]
             senha = request.form["senha"]
 
-            usuario = supabase.table("usuários") \
+            usuario = supabase.table("usuarios") \
                 .select("*") \
                 .eq("email", email) \
                 .execute()
