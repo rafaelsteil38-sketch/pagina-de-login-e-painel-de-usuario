@@ -13,14 +13,7 @@ app.secret_key = os.getenv("SECRET_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# DEBUG (aparece nos logs do Vercel)
-print("SUPABASE_URL:", SUPABASE_URL)
-print("SUPABASE_KEY OK:", bool(SUPABASE_KEY))
-
-supabase = None
-
-if SUPABASE_URL and SUPABASE_KEY:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 # ---------------- HOME ----------------
@@ -32,46 +25,39 @@ def index():
 # ---------------- CADASTRO ----------------
 @app.route("/cadastro", methods=["GET", "POST"])
 def cadastro():
-
     if request.method == "POST":
 
         try:
-            if not supabase:
-                return "Erro: Supabase não configurado"
-
-            nome = request.form["name"]
+            name = request.form["name"]
             email = request.form["email"]
-            senha = request.form["password"]
+            password = request.form["password"]
 
-            senha_hash = bcrypt.hashpw(
-                senha.encode("utf-8"),
+            # hash da senha
+            password_hash = bcrypt.hashpw(
+                password.encode("utf-8"),
                 bcrypt.gensalt()
             ).decode("utf-8")
 
-            # verifica usuário
-            usuario_existente = supabase.table("users") \
+            # verifica se usuário existe
+            user_exists = supabase.table("users") \
                 .select("*") \
                 .eq("email", email) \
                 .execute()
 
-            if usuario_existente.data:
+            if user_exists.data:
                 return "Email já cadastrado"
 
-            # insert
-            res = supabase.table("users").insert({
-                "nome": nome,
+            # insere usuário
+            supabase.table("users").insert({
+                "name": name,
                 "email": email,
-                "senha": senha_hash
+                "password": password_hash
             }).execute()
-
-            print("INSERT OK:", res)
 
             return redirect("/login")
 
         except Exception as e:
-            print("ERRO CADASTRO:", e)
-            return f"Erro no cadastro: {e}"
-
+            return f"Erro no cadastro: {str(e)}"
 
     return render_template("cadastro.html")
 
@@ -79,41 +65,36 @@ def cadastro():
 # ---------------- LOGIN ----------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
-
     if request.method == "POST":
 
         try:
-            if not supabase:
-                return "Erro: Supabase não configurado"
-
             email = request.form["email"]
-            senha = request.form["senha"]
+            password = request.form["password"]
 
-            usuario = supabase.table("users") \
+            user = supabase.table("users") \
                 .select("*") \
                 .eq("email", email) \
                 .execute()
 
-            if not usuario.data:
+            if not user.data:
                 return "Usuário não encontrado"
 
-            user = usuario.data[0]
+            user = user.data[0]
 
-            senha_correta = bcrypt.checkpw(
-                senha.encode("utf-8"),
-                user["senha"].encode("utf-8")
+            password_ok = bcrypt.checkpw(
+                password.encode("utf-8"),
+                user["password"].encode("utf-8")
             )
 
-            if not senha_correta:
+            if not password_ok:
                 return "Senha incorreta"
 
-            session["usuario"] = user["nome"]
+            session["user"] = user["name"]
 
             return redirect("/dashboard")
 
         except Exception as e:
-            print("ERRO LOGIN:", e)
-            return f"Erro no login: {e}"
+            return f"Erro no login: {str(e)}"
 
     return render_template("login.html")
 
@@ -121,11 +102,10 @@ def login():
 # ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 def dashboard():
-
-    if "usuario" not in session:
+    if "user" not in session:
         return redirect("/login")
 
-    return render_template("dashboard.html", usuario=session["usuario"])
+    return render_template("dashboard.html", user=session["user"])
 
 
 # ---------------- LOGOUT ----------------
@@ -135,6 +115,6 @@ def logout():
     return redirect("/")
 
 
-# ---------------- LOCAL RUN ----------------
+# ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
