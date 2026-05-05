@@ -9,102 +9,132 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
+# ---------------- SUPABASE ----------------
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+# DEBUG (aparece nos logs do Vercel)
+print("SUPABASE_URL:", SUPABASE_URL)
+print("SUPABASE_KEY OK:", bool(SUPABASE_KEY))
+
+supabase = None
+
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
+# ---------------- HOME ----------------
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
+# ---------------- CADASTRO ----------------
 @app.route("/cadastro", methods=["GET", "POST"])
 def cadastro():
 
     if request.method == "POST":
 
-        nome = request.form["nome"]
-        email = request.form["email"]
-        senha = request.form["senha"]
+        try:
+            if not supabase:
+                return "Erro: Supabase não configurado"
 
-        senha_hash = bcrypt.hashpw(
-            senha.encode("utf-8"),
-            bcrypt.gensalt()
-        ).decode("utf-8")
+            nome = request.form["nome"]
+            email = request.form["email"]
+            senha = request.form["senha"]
 
-        usuario_existente = supabase.table("usuarios") \
-            .select("*") \
-            .eq("email", email) \
-            .execute()
+            senha_hash = bcrypt.hashpw(
+                senha.encode("utf-8"),
+                bcrypt.gensalt()
+            ).decode("utf-8")
 
-        if usuario_existente.data:
-            return "Email já cadastrado"
+            # verifica usuário
+            usuario_existente = supabase.table("usuarios") \
+                .select("*") \
+                .eq("email", email) \
+                .execute()
 
-        supabase.table("usuarios").insert({
-            "nome": nome,
-            "email": email,
-            "senha": senha_hash
-        }).execute()
+            if usuario_existente.data:
+                return "Email já cadastrado"
 
-        return redirect("/login")
+            # insert
+            res = supabase.table("usuarios").insert({
+                "nome": nome,
+                "email": email,
+                "senha": senha_hash
+            }).execute()
+
+            print("INSERT OK:", res)
+
+            return redirect("/login")
+
+        except Exception as e:
+            print("ERRO CADASTRO:", e)
+            return f"Erro no cadastro: {e}"
+
 
     return render_template("cadastro.html")
 
 
+# ---------------- LOGIN ----------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
 
     if request.method == "POST":
 
-        email = request.form["email"]
-        senha = request.form["senha"]
+        try:
+            if not supabase:
+                return "Erro: Supabase não configurado"
 
-        usuario = supabase.table("usuarios") \
-            .select("*") \
-            .eq("email", email) \
-            .execute()
+            email = request.form["email"]
+            senha = request.form["senha"]
 
-        if not usuario.data:
-            return "Usuário não encontrado"
+            usuario = supabase.table("usuarios") \
+                .select("*") \
+                .eq("email", email) \
+                .execute()
 
-        usuario = usuario.data[0]
+            if not usuario.data:
+                return "Usuário não encontrado"
 
-        senha_correta = bcrypt.checkpw(
-            senha.encode("utf-8"),
-            usuario["senha"].encode("utf-8")
-        )
+            user = usuario.data[0]
 
-        if not senha_correta:
-            return "Senha incorreta"
+            senha_correta = bcrypt.checkpw(
+                senha.encode("utf-8"),
+                user["senha"].encode("utf-8")
+            )
 
-        session["usuario"] = usuario["nome"]
+            if not senha_correta:
+                return "Senha incorreta"
 
-        return redirect("/dashboard")
+            session["usuario"] = user["nome"]
+
+            return redirect("/dashboard")
+
+        except Exception as e:
+            print("ERRO LOGIN:", e)
+            return f"Erro no login: {e}"
 
     return render_template("login.html")
 
 
+# ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 def dashboard():
 
     if "usuario" not in session:
         return redirect("/login")
 
-    return render_template(
-        "dashboard.html",
-        usuario=session["usuario"]
-    )
+    return render_template("dashboard.html", usuario=session["usuario"])
 
 
+# ---------------- LOGOUT ----------------
 @app.route("/logout")
 def logout():
-
-    session.pop("usuario", None)
-
+    session.clear()
     return redirect("/")
 
 
+# ---------------- LOCAL RUN ----------------
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
