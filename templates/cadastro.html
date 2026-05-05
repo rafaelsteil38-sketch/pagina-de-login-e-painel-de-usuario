@@ -9,28 +9,21 @@
 </head>
 <body>
 
-    {% if error %}
-<div style="
-    background: #ffdddd;
-    color: #a10000;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    border: 1px solid #ff5c5c;
-    font-weight: bold;
-">
-    {{ error }}
-</div>
-{% endif %}
-
 <div class="container">
+
+    <h1>Cadastro</h1>
+
+    <!-- ERRO ESTILIZADO -->
+    {% if error %}
+    <div class="error-toast">
+        ⚠️ {{ error }}
+    </div>
+    {% endif %}
 
     <form method="POST">
 
-        <h1>Cadastro</h1>
-
         <input type="text" name="name" placeholder="Nome" required>
-        
+
         <input type="email" name="email" placeholder="Email" required>
 
         <input type="password" name="password" placeholder="Senha" required>
@@ -38,6 +31,13 @@
         <button type="submit">Cadastrar</button>
 
     </form>
+
+    <div class="botoes">
+        <p>Já tem conta?</p>
+        <a href="/login">
+            <button type="button">Ir para Login</button>
+        </a>
+    </div>
 
 </div>
 
