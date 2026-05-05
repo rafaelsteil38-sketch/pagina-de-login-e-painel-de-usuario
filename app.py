@@ -39,9 +39,9 @@ def cadastro():
             if not supabase:
                 return "Erro: Supabase não configurado"
 
-            nome = request.form["nome"]
+            nome = request.form["name"]
             email = request.form["email"]
-            senha = request.form["senha"]
+            senha = request.form["password"]
 
             senha_hash = bcrypt.hashpw(
                 senha.encode("utf-8"),
