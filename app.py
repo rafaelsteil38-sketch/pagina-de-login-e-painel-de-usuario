@@ -45,7 +45,7 @@ def cadastro():
                 .execute()
 
             if user_exists.data:
-                return "Email já cadastrado"
+                return render_template("cadastro.html", error="Email já cadastrado")
 
             # insere usuário
             supabase.table("users").insert({

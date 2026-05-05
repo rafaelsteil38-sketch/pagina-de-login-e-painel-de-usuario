@@ -9,6 +9,20 @@
 </head>
 <body>
 
+    {% if error %}
+<div style="
+    background: #ffdddd;
+    color: #a10000;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #ff5c5c;
+    font-weight: bold;
+">
+    {{ error }}
+</div>
+{% endif %}
+
 <div class="container">
 
     <form method="POST">
